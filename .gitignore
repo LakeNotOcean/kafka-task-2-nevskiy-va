@@ -1,0 +1,18 @@
+# Бесполезные агенты
+*opencode*
+*AGENTS*
+
+# Секреты
+.env
+
+# Rust
+/target
+
+# Стек
+data/
+
+# Логи
+*.log
+
+# Кеш
+__pycache__
