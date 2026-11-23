@@ -34,7 +34,12 @@ pub async fn generate(
                 counter += 1;
                 store.insert_event(&event).await?;
                 kafka::queue_event(producer, store, cfg, &event, &mut pending);
-                if counter % 100 == 0 {
+                while let Some(joined) = pending.try_join_next() {
+                    if let Err(err) = joined {
+                        error!(error = %err, "delivery task failed");
+                    }
+                }
+                if counter.is_multiple_of(100) {
                     info!(produced = counter, "progress");
                 }
             }
@@ -64,7 +69,7 @@ pub async fn generate(
 
 // генераиця события
 // user_id выбирается по кругу внутри шарда на основе счетчика
-// event_type по счетчику 
+// event_type по счетчику
 async fn make_event(
     store: &Store,
     cfg: &Config,
@@ -77,7 +82,7 @@ async fn make_event(
         1 => EventType::AddToCart,
         _ => EventType::Purchase,
     };
-    let poison = (counter + 1) % cfg.poison_every_n == 0;
+    let poison = (counter + 1).is_multiple_of(cfg.poison_every_n);
     Ok(Event {
         event_id: Uuid::new_v4(),
         user_id,

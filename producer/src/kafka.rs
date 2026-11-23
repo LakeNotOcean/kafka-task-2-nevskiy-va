@@ -13,6 +13,9 @@ use tracing::{error, info};
 // таймаут досылки при остановке должен быть меньше stop_grace_period в docker
 pub const FLUSH_TIMEOUT: Duration = Duration::from_secs(20);
 
+// соответствует message.timeout.ms чтобы не было дублей
+const RESEND_TIMEOUT: Duration = Duration::from_secs(30);
+
 // собирает идемпотентный продюсер с acks=all
 pub fn build_producer(cfg: &Config) -> Result<FutureProducer, KafkaError> {
     ClientConfig::new()
@@ -47,17 +50,18 @@ pub async fn resend_unsent(
         let key = e.user_id.to_string();
         let payload = serde_json::to_string(&e)?;
         let record = build_record(cfg, &key, &payload);
-        match producer.send(record, Timeout::After(FLUSH_TIMEOUT)).await {
+        match producer.send(record, Timeout::After(RESEND_TIMEOUT)).await {
             Ok(_) => store.mark_sent(e.event_id).await?,
             Err((kerr, _)) => {
-                error!(event_id = %e.event_id, error = %kerr, "outbox resend failed")
+                error!(event_id = %e.event_id, error = %kerr, "outbox resend failed");
+                return Err(kerr.into());
             }
         }
     }
     Ok(())
 }
 
-// поставновка события в очередь librdkafka 
+// поставновка события в очередь librdkafka
 // событие записывается в store
 pub fn queue_event(
     producer: &FutureProducer,

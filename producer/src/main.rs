@@ -1,5 +1,3 @@
-//! Продюсер: детерминированная генерация событий, outbox в SQLite, отправка в Kafka.
-
 mod generator;
 mod kafka;
 mod shutdown;

@@ -1,3 +1,4 @@
+#[cfg(unix)]
 use tracing::error;
 
 // корректное завершение по SIGTERM
