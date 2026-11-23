@@ -48,12 +48,9 @@ pub async fn resend_unsent(
         let payload = serde_json::to_string(&e)?;
         let record = build_record(cfg, &key, &payload);
         match producer.send(record, Timeout::After(FLUSH_TIMEOUT)).await {
-            Ok(Ok(_)) => store.mark_sent(e.event_id).await?,
-            Ok(Err((_, err))) => {
-                error!(event_id = %e.event_id, error = %err, "outbox resend rejected by broker")
-            }
-            Err(err) => {
-                error!(event_id = %e.event_id, error = %err, "outbox resend channel failed")
+            Ok(_) => store.mark_sent(e.event_id).await?,
+            Err((kerr, _)) => {
+                error!(event_id = %e.event_id, error = %kerr, "outbox resend failed")
             }
         }
     }
@@ -89,8 +86,8 @@ pub fn queue_event(
                             error!(event_id = %event_id, error = %err, "mark_sent failed");
                         }
                     }
-                    Ok(Err((_, err))) => {
-                        error!(event_id = %event_id, error = %err, "broker rejected")
+                    Ok(Err((kerr, _))) => {
+                        error!(event_id = %event_id, error = %kerr, "broker rejected")
                     }
                     Err(err) => {
                         error!(event_id = %event_id, error = %err, "delivery channel failed")

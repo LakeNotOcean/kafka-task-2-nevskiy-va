@@ -4,7 +4,7 @@ use chrono::Utc;
 use common::config::Config;
 use common::event::{Event, EventType};
 use common::store::Store;
-use rdkafka::producer::FutureProducer;
+use rdkafka::producer::{FutureProducer, Producer};
 use rdkafka::util::Timeout;
 use tokio::task::JoinSet;
 use tracing::{error, info, warn};
@@ -45,7 +45,9 @@ pub async fn generate(
         }
     }
 
-    producer.flush(Timeout::After(FLUSH_TIMEOUT));
+    if let Err(err) = producer.flush(Timeout::After(FLUSH_TIMEOUT)) {
+        warn!(error = %err, "flush failed");
+    }
     while let Some(joined) = pending.join_next().await {
         if let Err(err) = joined {
             error!(error = %err, "delivery task failed");
