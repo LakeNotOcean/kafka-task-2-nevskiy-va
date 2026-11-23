@@ -23,6 +23,26 @@ x-kafka-healthcheck: &kafka-healthcheck
   retries: 12
   start_period: 30s
 
+x-producer-base: &producer-base
+  build: .
+  image: kafka-stand-app:local
+  restart: on-failure
+  stop_grace_period: 30s
+  depends_on:
+    topic-init:
+      condition: service_completed_successfully
+  volumes:
+    - ./data:/data
+
+x-producer-env: &producer-env
+  KAFKA_BROKERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
+  TOPIC: events
+  RATE_PER_SEC: 10
+  POISON_EVERY_N: 50
+  USER_SHARD_COUNT: 3
+  USERS_PER_PRODUCER: 100
+  KEY_MODE: user_id
+
 services:
   kafka-1:
     image: apache/kafka:4.4.0
@@ -82,6 +102,30 @@ services:
         /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka-1:9092 --create --if-not-exists \
           --topic events.dlt --partitions 3 --replication-factor 3
         /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka-1:9092 --describe
+
+  producer-1:
+    <<: *producer-base
+    environment:
+      <<: *producer-env
+      POD_ID: producer-1
+      USER_SHARD_INDEX: 0
+      DB_PATH: /data/producer-1.db
+
+  producer-2:
+    <<: *producer-base
+    environment:
+      <<: *producer-env
+      POD_ID: producer-2
+      USER_SHARD_INDEX: 1
+      DB_PATH: /data/producer-2.db
+
+  producer-3:
+    <<: *producer-base
+    environment:
+      <<: *producer-env
+      POD_ID: producer-3
+      USER_SHARD_INDEX: 2
+      DB_PATH: /data/producer-3.db
 
 volumes:
   kafka-1-data:

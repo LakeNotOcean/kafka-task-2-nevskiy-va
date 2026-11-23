@@ -1,0 +1,8 @@
+.git
+target
+data
+.env
+*.log
+docs
+scripts
+AGENTS.md
