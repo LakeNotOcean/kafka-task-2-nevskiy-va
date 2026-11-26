@@ -11,7 +11,7 @@ use tracing::{error, info, warn};
 use uuid::Uuid;
 
 use crate::kafka::{self, FLUSH_TIMEOUT};
-use crate::shutdown::shutdown_signal;
+use common::shutdown::shutdown_signal;
 
 // генерация по тикам
 // остановка по SIGTERM/Ctrl-C
@@ -22,6 +22,7 @@ pub async fn generate(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut counter = store.event_count().await?;
     let mut pending: JoinSet<()> = JoinSet::new();
+    // событие раз в 0.1 секунду
     let mut tick = tokio::time::interval(Duration::from_secs_f64(1.0 / cfg.rate_per_sec as f64));
     tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     let shutdown = shutdown_signal();
@@ -29,6 +30,7 @@ pub async fn generate(
 
     loop {
         tokio::select! {
+            // генерируем по тику
             _ = tick.tick() => {
                 let event = make_event(store, cfg, counter).await?;
                 counter += 1;
@@ -50,6 +52,7 @@ pub async fn generate(
         }
     }
 
+    // досылка после завершения
     if let Err(err) = producer.flush(Timeout::After(FLUSH_TIMEOUT)) {
         warn!(error = %err, "flush failed");
     }
@@ -68,7 +71,7 @@ pub async fn generate(
 }
 
 // генераиця события
-// user_id выбирается по кругу внутри шарда на основе счетчика
+// user_id выбираются по кругу в зависимости от шарда
 // event_type по счетчику
 async fn make_event(
     store: &Store,

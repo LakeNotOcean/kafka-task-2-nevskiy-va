@@ -62,7 +62,7 @@ pub async fn resend_unsent(
 }
 
 // поставновка события в очередь librdkafka
-// событие записывается в store
+// событие также записывается в store
 pub fn queue_event(
     producer: &FutureProducer,
     store: &Store,

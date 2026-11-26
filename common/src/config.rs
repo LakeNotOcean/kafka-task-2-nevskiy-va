@@ -8,15 +8,15 @@ pub enum KeyMode {
     None,
 }
 
-// предварительная конфигурация потребителя
+// предварительная общая конфигурация для consumer и producer
 #[derive(Debug, Clone)]
 pub struct Config {
     pub pod_id: String,
     pub kafka_brokers: String,
     pub topic: String,
     pub dlt_topic: String,
-    pub partitions: u32,
-    pub partition_index: u32,
+    pub group_id: String,
+    pub processing_delay_ms: u64,
     pub rate_per_sec: u32,
     pub poison_every_n: u64,
     pub user_shard_index: u64,
@@ -70,8 +70,8 @@ impl Config {
             kafka_brokers: var("KAFKA_BROKERS", "kafka-1:9092,kafka-2:9092,kafka-3:9092"),
             topic: var("TOPIC", "events"),
             dlt_topic: var("DLT_TOPIC", "events.dlt"),
-            partitions: parse("PARTITIONS", "3")?,
-            partition_index: parse("PARTITION_INDEX", "0")?,
+            group_id: var("GROUP_ID", "events-processor"),
+            processing_delay_ms: parse("PROCESSING_DELAY_MS", "50")?,
             rate_per_sec: parse("RATE_PER_SEC", "10")?,
             poison_every_n: parse("POISON_EVERY_N", "50")?,
             user_shard_index: parse("USER_SHARD_INDEX", "0")?,

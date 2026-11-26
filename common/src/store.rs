@@ -28,25 +28,7 @@ impl Store {
             .max_connections(1)
             .connect_with(opts)
             .await?;
-        sqlx::query(
-            "CREATE TABLE IF NOT EXISTS events (
-                event_id TEXT PRIMARY KEY,
-                user_id INTEGER NOT NULL,
-                type TEXT NOT NULL,
-                seq INTEGER NOT NULL,
-                produced_at TEXT NOT NULL,
-                payload TEXT NOT NULL,
-                sent INTEGER NOT NULL DEFAULT 0
-            )",
-        )
-        .execute(&pool)
-        .await?;
-        sqlx::query("CREATE INDEX IF NOT EXISTS idx_events_user_seq ON events(user_id, seq)")
-            .execute(&pool)
-            .await?;
-        sqlx::query("CREATE INDEX IF NOT EXISTS idx_events_sent ON events(sent)")
-            .execute(&pool)
-            .await?;
+        sqlx::migrate!("migrations/store").run(&pool).await?;
         Ok(Self { pool })
     }
 
