@@ -41,8 +41,8 @@ x-producer-env: &producer-env
   RATE_PER_SEC: 10
   POISON_EVERY_N: 50
   USER_SHARD_COUNT: 3
-  USERS_PER_PRODUCER: 100
-  KEY_MODE: user_id
+  USERS_PER_PRODUCER: ${USERS_PER_PRODUCER:-100}
+  KEY_MODE: ${KEY_MODE:-user_id}
 
 x-consumer-base: &consumer-base
   build: .
@@ -62,6 +62,7 @@ x-consumer-env: &consumer-env
   DLT_TOPIC: events.dlt
   GROUP_ID: events-processor
   PROCESSING_DELAY_MS: 50
+  COMMIT_DELAY_MS: 0
   DB_PATH: /sink/sink.db
 
 services:
