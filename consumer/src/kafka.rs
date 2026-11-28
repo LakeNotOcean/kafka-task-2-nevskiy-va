@@ -50,7 +50,6 @@ impl ProcessedOffsets {
     }
 }
 
-
 pub struct GroupContext {
     pub offsets: ProcessedOffsets,
 }
@@ -85,7 +84,6 @@ impl ConsumerContext for GroupContext {
     }
 }
 
-
 pub fn build_consumer(
     cfg: &Config,
     offsets: ProcessedOffsets,
@@ -108,7 +106,6 @@ pub fn build_dlt_producer(cfg: &Config) -> Result<FutureProducer, KafkaError> {
         .set("message.timeout.ms", "30000")
         .create()
 }
-
 
 #[derive(Clone, Copy)]
 pub struct SourcePos<'a> {

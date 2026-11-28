@@ -41,6 +41,9 @@ pub async fn generate(
                         error!(error = %err, "delivery task failed");
                     }
                 }
+                if let Some((code, reason)) = producer.client().fatal_error() {
+                    return Err(format!("fatal producer error: {code:?}: {reason}").into());
+                }
                 if counter.is_multiple_of(100) {
                     info!(produced = counter, "progress");
                 }

@@ -13,8 +13,9 @@ use tracing::{error, info};
 // таймаут досылки при остановке должен быть меньше stop_grace_period в docker
 pub const FLUSH_TIMEOUT: Duration = Duration::from_secs(20);
 
-// соответствует message.timeout.ms чтобы не было дублей
-const RESEND_TIMEOUT: Duration = Duration::from_secs(30);
+// таймаут сообщения в очереди; досылка выровнена с ним чтобы не было дублей
+const MESSAGE_TIMEOUT: Duration = Duration::from_secs(300);
+const RESEND_TIMEOUT: Duration = MESSAGE_TIMEOUT;
 
 // собирает идемпотентный продюсер с acks=all
 pub fn build_producer(cfg: &Config) -> Result<FutureProducer, KafkaError> {
@@ -23,7 +24,10 @@ pub fn build_producer(cfg: &Config) -> Result<FutureProducer, KafkaError> {
         .set("client.id", &cfg.pod_id)
         .set("acks", "all")
         .set("enable.idempotence", "true")
-        .set("message.timeout.ms", "30000")
+        .set(
+            "message.timeout.ms",
+            MESSAGE_TIMEOUT.as_millis().to_string(),
+        )
         .create()
 }
 

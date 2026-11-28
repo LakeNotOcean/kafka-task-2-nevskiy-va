@@ -31,7 +31,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     run(&consumer, &dlt, &sink, &offsets, &cfg).await
 }
 
-
 async fn run(
     consumer: &StreamConsumer<kafka::GroupContext>,
     dlt: &FutureProducer,
@@ -88,10 +87,14 @@ async fn run(
                     }
                 }
 
+                // искусственная задержка коммита
+                if cfg.commit_delay_ms > 0 {
+                    tokio::time::sleep(std::time::Duration::from_millis(cfg.commit_delay_ms)).await;
+                }
                 // обработали
                 consumer.commit_message(&msg, CommitMode::Sync)?;
                 offsets.track(&topic, partition, offset + 1);
-                
+
                 let total = processed + duplicates + to_dlt;
                 if total > 0 && total.is_multiple_of(100) {
                     info!(processed, duplicates, to_dlt, "progress");
