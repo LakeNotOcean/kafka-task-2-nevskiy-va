@@ -50,7 +50,7 @@ impl ProcessedOffsets {
     }
 }
 
-// контекст группы: коммит обработанного перед отдачей партиций
+
 pub struct GroupContext {
     pub offsets: ProcessedOffsets,
 }
@@ -58,6 +58,7 @@ pub struct GroupContext {
 impl ClientContext for GroupContext {}
 
 impl ConsumerContext for GroupContext {
+    // коммит перед ребалансом
     fn pre_rebalance(&self, consumer: &BaseConsumer<Self>, rebalance: &Rebalance<'_>) {
         if let Rebalance::Revoke(revoked) = rebalance {
             let tpl = self.offsets.commit_list(revoked);

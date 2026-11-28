@@ -17,7 +17,7 @@ x-kafka-env: &kafka-env
   CLUSTER_ID: 5L6g3nShT-eMCtK--X86sw
 
 x-kafka-healthcheck: &kafka-healthcheck
-  test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+  test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 &>/dev/null"]
   interval: 10s
   timeout: 10s
   retries: 12
@@ -26,6 +26,7 @@ x-kafka-healthcheck: &kafka-healthcheck
 x-producer-base: &producer-base
   build: .
   image: kafka-stand-app:local
+  entrypoint: ["producer"]
   restart: on-failure
   stop_grace_period: 30s
   depends_on:
@@ -42,6 +43,26 @@ x-producer-env: &producer-env
   USER_SHARD_COUNT: 3
   USERS_PER_PRODUCER: 100
   KEY_MODE: user_id
+
+x-consumer-base: &consumer-base
+  build: .
+  image: kafka-stand-app:local
+  entrypoint: ["consumer"]
+  restart: on-failure
+  stop_grace_period: 30s
+  depends_on:
+    topic-init:
+      condition: service_completed_successfully
+  volumes:
+    - sink-data:/sink
+
+x-consumer-env: &consumer-env
+  KAFKA_BROKERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
+  TOPIC: events
+  DLT_TOPIC: events.dlt
+  GROUP_ID: events-processor
+  PROCESSING_DELAY_MS: 50
+  DB_PATH: /sink/sink.db
 
 services:
   kafka-1:
@@ -127,7 +148,44 @@ services:
       USER_SHARD_INDEX: 2
       DB_PATH: /data/producer-3.db
 
+  consumer-1:
+    <<: *consumer-base
+    environment:
+      <<: *consumer-env
+      POD_ID: consumer-1
+
+  consumer-2:
+    <<: *consumer-base
+    environment:
+      <<: *consumer-env
+      POD_ID: consumer-2
+
+  consumer-3:
+    <<: *consumer-base
+    environment:
+      <<: *consumer-env
+      POD_ID: consumer-3
+
+  # снимок sink для verify.py
+  sink-snapshot:
+    image: python:3.14-alpine
+    profiles: ["tools"]
+    volumes:
+      - sink-data:/sink
+      - ./data:/data
+    entrypoint: ["python3", "-c"]
+    command:
+      - |
+        import sqlite3
+        src = sqlite3.connect("/sink/sink.db", timeout=10)
+        dst = sqlite3.connect("/data/sink-snapshot.db")
+        src.backup(dst)
+        dst.close()
+        src.close()
+        print("sink snapshot written")
+
 volumes:
   kafka-1-data:
   kafka-2-data:
   kafka-3-data:
+  sink-data:
